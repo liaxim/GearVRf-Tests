@@ -130,7 +130,12 @@ public class VrAppSettingsTest extends ActivityInstrumentationGVRf {
 
          ResourceCache <GVRTexture> cache = new ResourceCache <GVRTexture>();
          GVRAndroidResource.CompressedTextureCallback compressedTextureCallback = new GVRAndroidResource.CompressedTextureCallback() {
-            @Override
+             @Override
+             public boolean stillWanted(GVRAndroidResource gvrAndroidResource) {
+                 return true;
+             }
+
+             @Override
             public void loaded(GVRTexture resource, GVRAndroidResource androidResource) {
 
             }

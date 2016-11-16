@@ -256,6 +256,11 @@ public class GVRContextTest extends ActivityInstrumentationGVRf {
 
         GVRAndroidResource.CompressedTextureCallback compressedTextureCallback = new GVRAndroidResource.CompressedTextureCallback() {
             @Override
+            public boolean stillWanted(GVRAndroidResource gvrAndroidResource) {
+                return true;
+            }
+
+            @Override
             public void loaded(GVRTexture resource, GVRAndroidResource androidResource) {
 
             }

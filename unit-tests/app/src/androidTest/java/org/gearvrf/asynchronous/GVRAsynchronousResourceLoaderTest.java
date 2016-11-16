@@ -75,6 +75,11 @@ public class GVRAsynchronousResourceLoaderTest extends ActivityInstrumentationGV
         ResourceCache<GVRTexture> textureCache = new ResourceCache<GVRTexture>();
         GVRAndroidResource.CompressedTextureCallback compressedTextureCallback = new GVRAndroidResource.CompressedTextureCallback() {
             @Override
+            public boolean stillWanted(GVRAndroidResource gvrAndroidResource) {
+                return true;
+            }
+
+            @Override
             public void loaded(GVRTexture resource, GVRAndroidResource androidResource) {
 
             }
