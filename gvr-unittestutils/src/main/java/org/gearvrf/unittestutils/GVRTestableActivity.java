@@ -73,6 +73,7 @@ public class GVRTestableActivity extends GVRActivity {
     protected void onDestroy() {
         Log.d(TAG, "OnDestroy called");
         super.onDestroy();
+        testableMain = null;
     }
 
     @Override
