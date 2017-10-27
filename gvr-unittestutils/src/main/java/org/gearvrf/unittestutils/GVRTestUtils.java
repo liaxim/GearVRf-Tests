@@ -36,6 +36,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -284,7 +285,7 @@ public class GVRTestUtils implements GVRMainMonitor {
     {
         GVRScreenshotCallback callback = new GVRScreenshotCallback()
         {
-            private void compareWithGolden(final Bitmap bitmap, String testname, Waiter waiter)
+            private void compareWithGolden(final Bitmap screenshot, String testname, Waiter waiter)
             {
                 try {
                     Bitmap golden = null;
@@ -305,19 +306,28 @@ public class GVRTestUtils implements GVRMainMonitor {
                     if (golden != null) {
                         try {
                             final float[] diff = {0.0f};
-                            waiter.assertEquals(golden.getWidth(), bitmap.getWidth());
-                            waiter.assertEquals(golden.getHeight(), bitmap.getHeight());
+                            waiter.assertEquals(golden.getWidth(), screenshot.getWidth());
+                            waiter.assertEquals(golden.getHeight(), screenshot.getHeight());
 
                             final ReentrantLock lockDiff = new ReentrantLock();
 
                             try {
                                 final CountDownLatch cdl = new CountDownLatch(golden.getHeight());
 
-                                for (int y = 0; y < golden.getHeight(); y++) {
-                                    Threads.spawn(new CompareRunnable(y, golden, lockDiff, diff, bitmap, cdl));
+                                final ByteBuffer goldenBuffer = ByteBuffer.allocate(golden.getByteCount());
+                                golden.copyPixelsToBuffer(goldenBuffer);
+                                final byte[] goldenBytes = goldenBuffer.array();
+                                final ByteBuffer screenshotBuffer = ByteBuffer.allocate(screenshot.getByteCount());
+                                screenshot.copyPixelsToBuffer(screenshotBuffer);
+                                final byte[] screenshotBytes = screenshotBuffer.array();
+
+                                for (int y = 0; y < 4*golden.getHeight(); y++) {
+                                    Threads.spawn(new CompareRunnable(y, goldenBytes, lockDiff, diff, screenshotBytes, cdl));
                                 }
 
                                 cdl.await();
+
+                                golden.copyPixelsFromBuffer(goldenBuffer);
                             } catch (Throwable t) {
                                 waiter.fail(t);
                             }
@@ -333,7 +343,7 @@ public class GVRTestUtils implements GVRMainMonitor {
                         }
                     }
                 } finally {
-                    bitmap.recycle();
+                    screenshot.recycle();
                 }
             }
 
@@ -413,22 +423,24 @@ public class GVRTestUtils implements GVRMainMonitor {
         private float[] diff;
         private Bitmap bitmap;
         private CountDownLatch cdl;
+        private int[] row;
 
-        CompareRunnable(final int y, final Bitmap golden, final ReentrantLock lockDiff, final float[] diff,
-                        final Bitmap bitmap, final CountDownLatch cdl) {
+        CompareRunnable(final int y, final Bitmap goldenBytes , final ReentrantLock lockDiff, final float[] diff,
+                        final Bitmap bitmap, final CountDownLatch cdl, final int[] row) {
             this.y = y;
             this.golden = golden;
             this.lockDiff = lockDiff;
             this.diff = diff;
             this.bitmap = bitmap;
             this.cdl = cdl;
+            this.row = row;
         }
 
         @Override
         public void run() {
             try {
-                for (int x = 0; x < golden.getWidth(); x++) {
-                    int p1 = golden.getPixel(x, y);
+                for (int x = 0; x < row.length; x++) {
+                    int p1 = row[y];
                     int p2 = bitmap.getPixel(x, y);
                     int r = Math.abs(Color.red(p1) - Color.red(p2));
                     int g = Math.abs(Color.green(p1) - Color.green(p2));
